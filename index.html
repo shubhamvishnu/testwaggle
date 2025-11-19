@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Waggel — Payment details (3DS demo)</title>
+
+  <!-- Reference libs from user's snippet -->
+  <script src="https://js.chargebee.com/v2/chargebee.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.js"
+    integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk="
+    crossorigin="anonymous"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#FBF6EE;
+      --card:#ffffff;
+      --ink:#1d1d1f;
+      --muted:#6F6F73;
+      --line:#ECECEC;
+      --brand:#9DEFE9;
+      --focus:#8CE0DB;
+      --cta:#83EAF2;
+      --cta-ink:#072022;
+      --radius:14px;
+      --radius-sm:10px;
+      --shadow:0 10px 30px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font:16px/1.35 "Inter",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    }
+    .wrap{max-width: 720px;margin:0 auto;padding:32px 20px 120px}
+    .panel{background:var(--card);border-radius:22px;padding:28px 28px 36px;box-shadow:var(--shadow)}
+
+    .logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:10px}
+    .logo-badge{width:38px;height:38px;border-radius:12px;background:var(--brand);display:grid;place-items:center;
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.05);font-weight:800;letter-spacing:-1px}
+    .logo-title{font-weight:800;letter-spacing:.2px;font-size:28px}
+    h1{text-align:center;margin:0 0 22px;font-size:26px;line-height:1.15}
+
+    .tabs{display:flex;gap:12px;margin:12px auto 18px;justify-content:center}
+    .tab{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius-sm);
+      border:1.5px solid var(--line);background:#fff;min-width:160px;justify-content:center;font-weight:600}
+    .tab.active{background:var(--brand);border-color:transparent}
+    .section-title{display:flex;align-items:center;gap:10px;font-weight:700;margin:8px 0 10px;font-size:15px}
+    .section-title .dot{width:10px;height:10px;border-radius:4px;background:#0000000f;display:inline-block}
+
+    form{display:grid;gap:16px}
+    .grid{display:grid;gap:14px;grid-template-columns: 1fr 1fr}
+    @media (max-width:680px){ .grid{grid-template-columns:1fr} }
+
+    label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:2px 0 6px;letter-spacing:.2px}
+
+    .field{position:relative}
+    .field-shell{position:relative}
+    .adornment-left{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:flex;gap:6px;align-items:center;pointer-events:none}
+    .adornment-right{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:6px;align-items:center;pointer-events:none}
+    .chip{height:16px;width:22px;border-radius:4px;background:linear-gradient(180deg,#e9e9ec,#cfcfd4);
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+
+    /* Native inputs */
+    input[type="text"], input[type="tel"], select{
+      width:100%;height:46px;border-radius:12px;border:1.5px solid var(--line);padding:10px 14px;font-size:15px;outline:none;background:#fff;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    select{
+      -webkit-appearance:none;appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #6f6f73 50%),
+        linear-gradient(135deg, #6f6f73 50%, transparent 50%);
+      background-position:
+        calc(100% - 20px) 19px,
+        calc(100% - 14px) 19px;
+      background-size:6px 6px, 6px 6px;
+      background-repeat:no-repeat;
+      padding-right: 40px;
+    }
+    input:focus, select:focus{border-color:transparent;box-shadow:0 0 0 3px var(--focus)}
+
+    /* Chargebee component hosts mimic inputs */
+    .cb-host{
+      width:100%;height:46px;border-radius:12px;border:1.5px solid var(--line);
+      background:#fff;position:relative;padding:10px 14px;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    .cb-host.card-number{padding-left:44px;padding-right:168px}
+    .cb-host.cvv{padding-right:60px}
+    .cb-host iframe{width:100%;height:100%;border:0}
+    /* states from options.classes */
+    .cb-host.focus{border-color:transparent;box-shadow:0 0 0 3px var(--focus)}
+    .cb-host.invalid{border-color:#ff6b6b;box-shadow:0 0 0 3px rgba(255,107,107,.25)}
+
+    .brands{display:flex;gap:6px;align-items:center}
+    .brand-pill{font-size:10px;font-weight:700;padding:4px 6px;border-radius:6px;background:#F2F3F7;color:#3a3a3f;border:1px solid #E3E4EA;letter-spacing:.2px}
+
+    .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+    .divider{margin:18px 0 8px;border-top:1px solid var(--line)}
+    .picker-title{text-align:center;font-weight:800;margin:6px 0 2px;font-size:18px}
+    .subtle{font-weight:600;color:var(--muted);text-align:left;font-size:13px;margin-top:4px}
+    .info-copy{background:#FCFCFD;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13px;color:#4d4e53;line-height:1.5}
+
+    .cta{margin-top:10px;display:block;width:100%;padding:14px 18px;font-weight:800;text-align:center;border-radius:14px;
+      background:var(--cta);color:var(--cta-ink);border:none;cursor:pointer;font-size:16px;letter-spacing:.2px;box-shadow:0 8px 18px rgba(0,0,0,.08)}
+    .cta:active{transform:translateY(1px)}
+
+    .tools{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+    .tool-link{font-size:13px;color:#0a6b6f;text-decoration:underline;cursor:pointer}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:#f5f8fa;border:1px solid #e7edf2;border-radius:10px;padding:6px 10px;font-size:12px;color:#39424e}
+
+    /* Modal for Payment Intent input */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;align-items:center;justify-content:center;padding:20px;z-index:1000}
+    .modal{background:#fff;border-radius:16px;max-width:700px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+    .modal header{padding:16px 18px;border-bottom:1px solid var(--line);font-weight:800}
+    .modal .content{padding:16px 18px}
+    .modal textarea{width:100%;height:240px;border-radius:12px;border:1.5px solid var(--line);padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:13px}
+    .modal .actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px;border-top:1px solid var(--line)}
+    .btn{border:1px solid #cfd8df;background:#fff;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    .btn.primary{background:#0a6b6f;color:#fff;border-color:#0a6b6f}
+    .note{font-size:12px;color:#5b616a;margin:8px 0}
+
+    .result{margin-top:16px;background:#F7FBFF;border:1px solid #E0F0FF;border-radius:12px;padding:14px}
+    .result h3{margin:0 0 10px;font-size:15px}
+    pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px}
+
+    .chat-fab{position:fixed;right:26px;bottom:26px;width:56px;height:56px;border-radius:50%;background:#3A57FF;display:grid;place-items:center;color:#fff;box-shadow:0 10px 22px rgba(58,87,255,.35);font-weight:700;user-select:none}
+    .chat-fab svg{width:26px;height:26px;fill:#fff}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="panel">
+      <div class="logo" aria-label="Waggel">
+        <div class="logo-badge" aria-hidden="true">W</div>
+        <div class="logo-title">Waggel</div>
+      </div>
+      <h1>Payment details</h1>
+
+      <div class="tabs" role="tablist" aria-label="Payment method">
+        <div class="tab" role="tab" aria-selected="false">Direct Debit</div>
+        <div class="tab active" role="tab" aria-selected="true">Card</div>
+      </div>
+
+      <div class="section-title"><span class="dot"></span><span>Card</span></div>
+
+      <form id="waggel-form">
+        <!-- Card Number (Chargebee) -->
+        <div class="field">
+          <label for="cb-card-number">Card number</label>
+          <div class="field-shell">
+            <div class="adornment-left" aria-hidden="true"><div class="chip"></div></div>
+            <div id="cb-card-number" class="cb-host card-number"></div>
+            <div class="adornment-right" aria-hidden="true">
+              <div class="brands">
+                <span class="brand-pill">VISA</span>
+                <span class="brand-pill">MC</span>
+                <span class="brand-pill">AMEX</span>
+                <span class="brand-pill">DISC</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expiry + CVC (Chargebee) -->
+        <div class="grid">
+          <div class="field">
+            <label for="cb-card-expiry">Expiry date</label>
+            <div id="cb-card-expiry" class="cb-host"></div>
+          </div>
+          <div class="field">
+            <label for="cb-card-cvc">Security code</label>
+            <div id="cb-card-cvc" class="cb-host cvv"></div>
+          </div>
+        </div>
+
+        <!-- Country + Postal -->
+        <div class="grid">
+          <div class="field">
+            <label for="country">Country</label>
+            <select id="country">
+              <option>United Kingdom</option>
+              <option>Republic of Ireland</option>
+              <option>France</option>
+              <option>Germany</option>
+              <option>Spain</option>
+              <option>Other…</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="postcode">Postal code</label>
+            <input id="postcode" type="text" placeholder="BT48 8BY" />
+          </div>
+        </div>
+
+        <p class="hint">By providing your card information, you allow Waggel to charge your card for future payments in accordance with their terms.</p>
+
+        <div class="divider"></div>
+
+        <div class="picker-title">Payment date</div>
+        <div class="field">
+          <label for="paydate">Select your payment date</label>
+          <select id="paydate">
+            <option>21st of the month</option>
+            <option>1st of the month</option>
+            <option>7th of the month</option>
+            <option>14th of the month</option>
+            <option>28th of the month</option>
+          </select>
+        </div>
+
+        <div class="tools">
+          <span class="subtle">View payment schedule</span>
+          <span id="intent-open" class="tool-link">Update payment intent</span>
+        </div>
+
+        <div class="info-copy">
+          Your first payment will be taken soon after your start date. If you choose a different payment date than your policy start date, it may result in you getting charged twice in a month, but don't worry, we'll only ever collect 12 payments during your annual policy.<br><br>
+          Your policy will renew annually. You can change this at any time in your account settings.
+        </div>
+
+        <div class="tools" style="margin-top:10px">
+          <span class="badge">Current intent: <code id="current-intent-id">—</code></span>
+          <span class="badge">Gateway: <code id="current-gateway">—</code></span>
+        </div>
+
+        <button id="complete-btn" class="cta" type="button" aria-label="Complete purchase">Complete purchase</button>
+
+        <div id="result" class="result" style="display:none;">
+          <h3>Authorized payment intent</h3>
+          <pre id="result-json"></pre>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Payment Intent Modal -->
+  <div id="intent-modal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="intent-title">
+      <header id="intent-title">Set Payment Intent (paste JSON or upload .json)</header>
+      <div class="content">
+        <textarea id="intent-text"></textarea>
+        <div class="note">Tip: replace with a fresh Payment Intent JSON every time you finish a purchase.</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="intent-file" type="file" accept=".json,application/json" />
+          <button class="btn" id="load-sample">Load sample</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="intent-cancel">Cancel</button>
+        <button class="btn primary" id="intent-save">Save intent</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-fab" aria-hidden="true" title="Chat">
+    <svg viewBox="0 0 24 24"><path d="M12 3C6.48 3 2 6.94 2 11.8c0 2.5 1.25 4.74 3.28 6.3-.12.9-.61 2.38-1.76 3 .99.13 2.6-.1 3.9-.83 1.35.47 2.83.73 4.58.73 5.52 0 10-3.94 10-8.8S17.52 3 12 3z"/></svg>
+  </div>
+
+  <script>
+    // --- Setup Chargebee (reference from your snippet) ---
+    const cbInstance = Chargebee.init({
+      site: "sk-playground-test", // Replace with your site name if needed
+      publishableKey: "test_JKTqQwR2FQFtBTDoaT9QTSAutONqOD7cu",
+      isItemsModel: true
+    });
+
+    const options = {
+      icon: true,
+      classes: {
+        focus: 'focus',
+        invalid: 'invalid',
+        empty: 'empty',
+        complete: 'complete'
+      }
+    };
+
+    // Default sample payment intent (same structure as your reference)
+    const sampleIntent = {
+      "id": "169zUcUl6IAPd1KDPwqHRJ5fdxy4KsA3TfB9GcuguyKflkbNtl",
+      "status": "inited",
+      "amount": 5000,
+      "gateway_account_id": "gw_AzqP4pRmyaaNsJT",
+      "expires_at": 1747590298,
+      "payment_method_type": "card",
+      "created_at": 1747158298,
+      "modified_at": 1747158298,
+      "updated_at": 1747158298,
+      "resource_version": 1747158298578,
+      "object": "payment_intent",
+      "currency_code": "USD",
+      "gateway": "stripe"
+    };
+
+    let currentPaymentIntent = JSON.parse(JSON.stringify(sampleIntent)); // cloned
+
+    const countryToISO = (name) => ({
+      "United Kingdom": "GBP",
+      "Republic of Ireland": "IE",
+      "France": "EUR",
+      "Germany": "EUR",
+      "Spain": "EUR",
+      "Other…": ""
+    }[name] || "");
+
+    function setIntentBadge(intent){
+      const idEl = document.getElementById("current-intent-id");
+      const gwEl = document.getElementById("current-gateway");
+      idEl.textContent = intent && intent.id ? intent.id : "—";
+      gwEl.textContent = intent && intent.gateway ? intent.gateway : "—";
+    }
+
+    function openModal(){
+      const modal = document.getElementById("intent-modal");
+      document.getElementById("intent-text").value = JSON.stringify(currentPaymentIntent, null, 2);
+      modal.style.display = "flex";
+      modal.setAttribute("aria-hidden","false");
+    }
+    function closeModal(){
+      const modal = document.getElementById("intent-modal");
+      modal.style.display = "none";
+      modal.setAttribute("aria-hidden","true");
+    }
+
+    // Wire up when components are ready
+    cbInstance.load("components").then(() => {
+      const cardComponent = cbInstance.createComponent("card", options);
+      cardComponent.createField("number").at("#cb-card-number");
+      cardComponent.createField("expiry").at("#cb-card-expiry");
+      cardComponent.createField("cvv").at("#cb-card-cvc");
+      cardComponent.mount();
+
+      // Open modal
+      $("#intent-open").on("click", function(){ openModal(); });
+
+      // Load sample button
+      $("#load-sample").on("click", function(){
+        $("#intent-text").val(JSON.stringify(sampleIntent, null, 2));
+      });
+
+      // Cancel
+      $("#intent-cancel").on("click", function(){ closeModal(); });
+
+      // Load from file
+      $("#intent-file").on("change", function(e){
+        const file = e.target.files && e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt){
+          try {
+            const json = JSON.parse(evt.target.result);
+            $("#intent-text").val(JSON.stringify(json, null, 2));
+          } catch (err) { alert("Invalid JSON in file."); }
+        };
+        reader.readAsText(file);
+      });
+
+      // Save intent
+      $("#intent-save").on("click", function(){
+        try {
+          const newJson = JSON.parse($("#intent-text").val());
+          currentPaymentIntent = newJson;
+          setIntentBadge(currentPaymentIntent);
+          closeModal();
+        } catch (err){
+          alert("Invalid JSON. Please correct it and try again.");
+        }
+      });
+
+      // Complete purchase -> Authorize
+      $("#complete-btn").on("click", function (event) {
+        event.preventDefault();
+
+        // Minimal billing details from existing UI
+        const countryName = $("#country").val();
+        const billingDetails = {
+          firstName: "Waggel",
+          lastName: "Customer",
+          addressLine1: "N/A",
+          city: "",
+          state: "",
+          stateCode: "",
+          zip: $("#postcode").val() || "",
+          countryCode: countryToISO(countryName)
+        };
+
+        // Call 3DS authorize and show result
+        cardComponent.authorizeWith3ds(currentPaymentIntent, {
+          billingAddress: billingDetails
+        }).then(function (paymentIntentResult) {
+          $("#result").show();
+          $("#result-json").text(JSON.stringify(paymentIntentResult, null, 2));
+          console.log("Payment Intent Success:", paymentIntentResult);
+          try {
+    $("#result").show();
+    $("#result-json").text("Authorizing…");
+
+    const authPI = paymentIntentResult?.payment_intent || currentPaymentIntent;
+    const paymentIntentId = authPI?.id;
+    const unitPrice = authPI?.amount;
+
+    // Create customer
+    const r1 = await fetch("/api/create-customer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentIntentId })
+    });
+    const j1 = await r1.json();
+    if (!r1.ok) throw new Error("Create Customer failed: " + JSON.stringify(j1));
+
+    // Create subscription
+    const r2 = await fetch("/api/create-subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerId: j1.customerId, unitPrice })
+    });
+    const j2 = await r2.json();
+    if (!r2.ok) throw new Error("Create Subscription failed: " + JSON.stringify(j2));
+
+    $("#result-json").text(JSON.stringify({
+      authorizedPaymentIntent: paymentIntentResult,
+      createdCustomer: j1,
+      createdSubscription: j2
+    }, null, 2));
+  } catch (e) {
+    $("#result-json").text(String(e));
+  }
+        }).catch(function (error) {
+          $("#result").show();
+          $("#result-json").text("Error :: " + error.message);
+          console.error("Payment Intent Error:", error);
+        });
+      });
+
+      // Initialize badges
+      setIntentBadge(currentPaymentIntent);
+    });
+  </script>
+</body>
+</html>
